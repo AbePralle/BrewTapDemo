@@ -1,16 +1,17 @@
 # BrewTapDemo
-Demonstrates how to create a third-party Homebrew Tap + Formulae. Uses a build-from-source C++ demo app.
+Demonstrates how to create a third-party Homebrew Tap and create a Formula to install a C++ demo app.
 
-To install and run this example with Homebrew, execute:
+To install and run the example shown in this repo with Homebrew, execute:
 
     brew install abepralle/tools/brewtapdemo
     brewtapdemo
+    # Prints out "Hello World!"
 
 The following sections describe how to set up a similar Tap with Formulae.
 
 # Create a New Tap
 
-This will create a new local
+This will create a new local Git repo:
 
     brew tap-new abepralle/tools
 
@@ -69,5 +70,99 @@ On Terminal, run:
 
     brew create https://link-to-your.tar.gz
 
-Brew will create a new .rb (Ruby) *formulae* in Brew's `homebrew-core/Formulas` folder and launch an editor. From your `homebrew-tools` folder, quit the editor and `mv <original-formula-filepath.rb> ./Formulas` to relocate the fomulae to your custom Tap folder. Then edit it and flesh out all the details. For example:
+Brew will create a new .rb (Ruby) *formula* in Brew's `homebrew-core/Formula` folder:
+
+    > brew create https://github.com/AbePralle/BrewTapDemo/archive/refs/tags/v1.0.tar.gz
+    ==> Downloading https://github.com/AbePralle/BrewTapDemo/archive/refs/tags/v1.0.tar.gz
+    ==> Downloading from https://codeload.github.com/AbePralle/BrewTapDemo/tar.gz/refs/tags/v1.0
+    -#O#- #   #
+    Warning: Cannot verify integrity of '8997e132655c5c0da3c2ffa9463edb0191857964db364163be90ec880de226a4--BrewTapDemo-1.0.tar.gz'.
+    No checksum was provided for this resource.
+    For your reference, the checksum is:
+      sha256 "89664b3259b279587c990aa19255b40235648d63dcbe35d010a770eb47061856"
+    Please run `brew audit --new BrewTapDemo` before submitting, thanks.
+    Editing /usr/local/Homebrew/Library/Taps/homebrew/homebrew-core/Formula/brewtapdemo.rb
+
+And launch an editor:
+
+    # Documentation: https://docs.brew.sh/Formula-Cookbook
+    #                https://rubydoc.brew.sh/Formula
+    # PLEASE REMOVE ALL GENERATED COMMENTS BEFORE SUBMITTING YOUR PULL REQUEST!
+    class Brewtapdemo < Formula
+      desc "Demonstrates how to create a third-party Homebrew Tap + Formula"
+      homepage ""
+      url "https://github.com/AbePralle/BrewTapDemo/archive/refs/tags/v1.0.tar.gz"
+      sha256 "89664b3259b279587c990aa19255b40235648d63dcbe35d010a770eb47061856"
+      license "MIT"
+
+      # depends_on "cmake" => :build
+
+      def install
+        # ENV.deparallelize  # if your formula fails when building in parallel
+        # Remove unrecognized options if warned by configure
+        # https://rubydoc.brew.sh/Formula.html#std_configure_args-instance_method
+        system "./configure", *std_configure_args, "--disable-silent-rules"
+        # system "cmake", "-S", ".", "-B", "build", *std_cmake_args
+      end
+
+      test do
+        # `test do` will create, run in and delete a temporary directory.
+        #
+        # This test will fail and we won't accept that! For Homebrew/homebrew-core
+        # this will need to be a test that verifies the functionality of the
+        # software. Run the test with `brew test BrewTapDemo`. Options passed
+        # to `brew install` such as `--HEAD` also need to be provided to `brew test`.
+        #
+        # The installed folder is not in the path, so use the entire path to any
+        # executables being tested: `system "#{bin}/program", "do", "something"`.
+        system "false"
+      end
+    end
+
+Quit the editor and move the listed `.rb` file to your `homebrew-tools/Formula` folder:
+
+    cd /usr/local/Homebrew/Library/Taps/abepralle/homebrew-tools
+    mv /usr/local/Homebrew/Library/Taps/homebrew/homebrew-core/Formula/brewtapdemo.rb ./Formula/
+
+(If you leave it in the `homebrew-core` folder, it will come up with a "no bottles" error related to installing from source when you try to install it later.)
+
+Then edit it and flesh out all the details. For example:
+
+    class Brewtapdemo < Formula
+      desc "Demonstrates how to create a third-party Homebrew Tap + Formula"
+      homepage "https://github.com/AbePralle"
+      url "https://github.com/AbePralle/BrewTapDemo/archive/refs/tags/v1.0.tar.gz"
+      sha256 "89664b3259b279587c990aa19255b40235648d63dcbe35d010a770eb47061856"
+      license "MIT"
+
+      depends_on "make" => :build
+
+      def install
+        system "make", "homebrew", "INSTALL_FOLDER=#{prefix}"
+      end
+
+      test do
+        assert_equal "Hello World!", shell_output("#{bin}/brewtapdemo").strip
+      end
+    end
+
+Test out your new formula with something like:
+
+    brew install abepralle/tools/brewtapdemo
+    brewtapdemo
+    brew test brewtapdemo
+
+No news is good news with `brew test`; you'll only see an error message if the test fails.
+
+    brew test brewtapdemo
+    ==> Testing abepralle/tools/brewtapdemo
+    ==> /usr/local/Cellar/brewtapdemo/1.0/bin/brewtapdemo
+
+Finally add the new formula to your repo:
+
+    git add Formula/brewtapdemo.rb
+    git commit -am "brewtapdemo"
+    git push
+
+You're all set! Now anyone on Mac or Linux can install and use your software with e.g. `brew install abepralle/tools/brewtapdemo`!
 
